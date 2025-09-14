@@ -18,6 +18,8 @@
             --header-color: #1a1a1a;
             --panel-bg: #ffffff;
             --border-color: #e5e7eb;
+            --collapsible-header-bg: #e5e7eb;
+            --collapsible-hover-bg: #d1d5db;
         }
         
         .dark-mode {
@@ -26,6 +28,8 @@
             --header-color: #f5f5f5;
             --panel-bg: #262626;
             --border-color: #404040;
+            --collapsible-header-bg: #404040;
+            --collapsible-hover-bg: #525252;
         }
 
         body {
@@ -35,7 +39,7 @@
             transition: background-color 0.3s, color 0.3s;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Hide body scrollbar */
+            overflow: hidden;
         }
         
         .font-garamond { font-family: 'Cormorant Garamond', serif; }
@@ -66,6 +70,7 @@
             overflow-y: auto;
             padding: 2rem;
             box-sizing: border-box;
+            z-index: 10;
         }
         
         #reading-panel.active {
@@ -91,6 +96,58 @@
             border: none;
             background: none;
             color: var(--text-color);
+            z-index: 20;
+        }
+        
+        #contributors-panel {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 250px;
+            background-color: var(--panel-bg);
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+            height: 100%;
+            overflow-y: auto;
+            transition: width 0.5s;
+            z-index: 5;
+        }
+        
+        #contributors-panel.collapsed { width: 50px; }
+
+        .contributor-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .contributor-item:hover { background-color: var(--collapsible-hover-bg); }
+
+        .contributor-item img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .contributor-item .contributor-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #contributors-toggle-btn {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: var(--collapsible-header-bg);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            cursor: pointer;
+            border-top-right-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
         }
 
         #theme-toggle {
@@ -108,6 +165,7 @@
             cursor: pointer;
             border: none;
             transition: background-color 0.3s;
+            z-index: 10;
         }
         
         .dark-mode #theme-toggle { background-color: #f5f5f5; color: #1a1a1a; }
@@ -116,6 +174,11 @@
 <body class="font-inter">
     <div id="main-container">
         <div id="network-container"></div>
+        <div id="contributors-panel">
+            <h3 style="text-align: center; margin: 1rem 0; font-weight: bold;">Contributors</h3>
+            <div id="contributors-list"></div>
+            <button id="contributors-toggle-btn">◀</button>
+        </div>
         <div id="reading-panel">
             <button id="close-panel-btn">&times;</button>
             <div class="reading-panel-content" id="reading-panel-story-display"></div>
@@ -135,11 +198,15 @@
         const readingPanelStoryDisplay = document.getElementById('reading-panel-story-display');
         const closePanelBtn = document.getElementById('close-panel-btn');
         const themeToggle = document.getElementById('theme-toggle');
+        const contributorsPanel = document.getElementById('contributors-panel');
+        const contributorsToggleBtn = document.getElementById('contributors-toggle-btn');
+        const contributorsList = document.getElementById('contributors-list');
         const converter = new showdown.Converter();
 
         let chapters = {};
         let network;
-        
+        let originalNodes;
+
         const toggleDarkMode = () => {
             const isDark = document.body.classList.toggle('dark-mode');
             localStorage.setItem('dark-mode', isDark);
@@ -164,14 +231,15 @@
                     const id = chapter.filename;
                     const label = chapter.metadata.title;
                     chapters[id] = chapter;
-                    nodes.push({ id, label });
+                    nodes.push({ id, label, author: chapter.metadata.author, color: { background: '#D2E5FF', border: '#2B7CE9' } });
 
                     if (chapter.metadata.parent) {
                         edges.push({ from: chapter.metadata.parent, to: id });
                     }
                 });
 
-                const visData = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+                originalNodes = new vis.DataSet(nodes);
+                const visData = { nodes: originalNodes, edges: new vis.DataSet(edges) };
                 const options = {
                     interaction: { hover: true, navigationButtons: true },
                     edges: { smooth: { type: 'continuous' } },
@@ -189,6 +257,9 @@
                         }
                     }
                 });
+                
+                // Populate contributors list
+                renderContributors(data.contributors);
 
             } catch (error) {
                 console.error("Error fetching stories:", error);
@@ -210,6 +281,43 @@
             readingPanel.classList.remove('active');
         });
         
+        contributorsToggleBtn.addEventListener('click', () => {
+            contributorsPanel.classList.toggle('collapsed');
+            contributorsToggleBtn.textContent = contributorsPanel.classList.contains('collapsed') ? '▶' : '◀';
+        });
+
+        const renderContributors = (contributors) => {
+            contributorsList.innerHTML = '';
+            contributors.forEach(contributor => {
+                const item = document.createElement('div');
+                item.classList.add('contributor-item');
+                item.innerHTML = `
+                    <img src="${contributor.avatar_url}" alt="${contributor.login}">
+                    <span class="contributor-name">${contributor.login}</span>
+                `;
+                item.addEventListener('click', () => highlightNodesByAuthor(contributor.login));
+                contributorsList.appendChild(item);
+            });
+        };
+
+        const highlightNodesByAuthor = (author) => {
+            const allNodes = originalNodes.getIds();
+            const contributedNodes = Object.values(chapters).filter(c => c.metadata.author === author).map(c => c.filename);
+
+            const updatedNodes = allNodes.map(nodeId => {
+                let color;
+                if (contributedNodes.includes(nodeId)) {
+                    color = { background: '#FFC0CB', border: '#FF69B4' }; // Pink for highlighting
+                } else {
+                    color = { background: '#e0e0e0', border: '#979797' }; // Grey out others
+                }
+                return { id: nodeId, color };
+            });
+
+            originalNodes.update(updatedNodes);
+            network.fit({ nodes: contributedNodes }); // Zoom in on the contributed nodes
+        };
+
         fetchStories();
     </script>
 </body>
