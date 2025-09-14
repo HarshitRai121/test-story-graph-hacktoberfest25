@@ -1,27 +1,31 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-// Note: Replace with your actual repo details
-const REPO_OWNER = 'your-github-username';
-const REPO_NAME = 'your-repo-name';
-
-// You will need a GitHub Personal Access Token if your repo is private or for higher API limits.
-// For a public repo, it might work without, but adding one is more reliable.
-// If using one, store it securely in Vercel as an environment variable (e.g., GITHUB_TOKEN).
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+// Repo details are hardcoded since we are not using environment variables.
+const REPO_OWNER = 'HarshitRai121';
+const REPO_NAME = 'test-story-graph-hacktoberfest25';
 
 export default async function handler(req, res) {
   try {
-    // 1. Fetch contributors from the GitHub API
+    // 1. Fetch contributors from the GitHub API (unauthenticated)
     const contributorsRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contributors`, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        ...(GITHUB_TOKEN && { 'Authorization': `token ${GITHUB_TOKEN}` })
       }
     });
-    if (!contributorsRes.ok) throw new Error(`GitHub API Error: ${contributorsRes.statusText}`);
-    const githubContributors = await contributorsRes.json();
 
+    // Check for API rate limit or other issues
+    if (!contributorsRes.ok) {
+      console.error(`GitHub API Error: ${contributorsRes.statusText}`);
+      // Fallback gracefully without contributor data
+      const chapters = await processStoryNodes();
+      return res.status(200).json({ 
+        chapters,
+        contributors: [] // Return an empty array for contributors
+      });
+    }
+    
+    const githubContributors = await contributorsRes.json();
     const contributorsMap = {};
     githubContributors.forEach(contributor => {
       contributorsMap[contributor.login] = {
@@ -32,30 +36,7 @@ export default async function handler(req, res) {
     });
 
     // 2. Read story nodes and associate authors
-    const storynodesDir = path.join(process.cwd(), 'storynodes');
-    const files = await fs.readdir(storynodesDir);
-    const chapters = await Promise.all(files.filter(file => file.endsWith('.md')).map(async (filename) => {
-      const filePath = path.join(storynodesDir, filename);
-      const fullContent = await fs.readFile(filePath, 'utf8');
-      
-      const [metadataRaw, ...contentLines] = fullContent.split('---').filter(Boolean);
-      const metadata = metadataRaw.trim().split('\n').reduce((acc, line) => {
-        const [key, ...value] = line.split(': ');
-        if (key && value) acc[key.trim()] = value.join(': ').trim();
-        return acc;
-      }, {});
-      
-      // Associate author with this story node
-      if (metadata.author && contributorsMap[metadata.author]) {
-        contributorsMap[metadata.author].contributedNodes.push(filename);
-      }
-      
-      return {
-        filename,
-        metadata,
-        content: contentLines.join('---').trim(),
-      };
-    }));
+    const chapters = await processStoryNodes(contributorsMap);
     
     // 3. Send combined data
     res.status(200).json({ 
@@ -65,4 +46,32 @@ export default async function handler(req, res) {
   } catch (error) {
     res.status(500).json({ error: 'Failed to process stories and contributors.', details: error.message });
   }
+}
+
+// Helper function to process story nodes
+async function processStoryNodes(contributorsMap = {}) {
+  const storynodesDir = path.join(process.cwd(), 'storynodes');
+  const files = await fs.readdir(storynodesDir);
+  return await Promise.all(files.filter(file => file.endsWith('.md')).map(async (filename) => {
+    const filePath = path.join(storynodesDir, filename);
+    const fullContent = await fs.readFile(filePath, 'utf8');
+    
+    const [metadataRaw, ...contentLines] = fullContent.split('---').filter(Boolean);
+    const metadata = metadataRaw.trim().split('\n').reduce((acc, line) => {
+      const [key, ...value] = line.split(': ');
+      if (key && value) acc[key.trim()] = value.join(': ').trim();
+      return acc;
+    }, {});
+    
+    // Associate author with this story node
+    if (metadata.author && contributorsMap[metadata.author]) {
+      contributorsMap[metadata.author].contributedNodes.push(filename);
+    }
+    
+    return {
+      filename,
+      metadata,
+      content: contentLines.join('---').trim(),
+    };
+  }));
 }
