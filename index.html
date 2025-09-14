@@ -1,324 +1,456 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Collaborative Chain Novel</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
-    <script src="https://unpkg.com/vis-network/dist/vis-network.min.js"></script>
-    <link href="https://unpkg.com/vis-network/dist/vis-network.min.css" rel="stylesheet" type="text/css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Once Upon a Commit — The Constellation</title>
 
-    <style>
-        :root {
-            --bg-color: #f7f7f7;
-            --text-color: #4a4a4a;
-            --header-color: #1a1a1a;
-            --panel-bg: #ffffff;
-            --border-color: #e5e7eb;
-            --collapsible-header-bg: #e5e7eb;
-            --collapsible-hover-bg: #d1d5db;
-        }
-        
-        .dark-mode {
-            --bg-color: #1a1a1a;
-            --text-color: #a3a3a3;
-            --header-color: #f5f5f5;
-            --panel-bg: #262626;
-            --border-color: #404040;
-            --collapsible-header-bg: #404040;
-            --collapsible-hover-bg: #525252;
-        }
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: background-color 0.3s, color 0.3s;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-        
-        .font-garamond { font-family: 'Cormorant Garamond', serif; }
-        .font-inter { font-family: 'Inter', sans-serif; }
+  <!-- Vis Network -->
+  <link href="https://unpkg.com/vis-network/styles/vis-network.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/vis-network/dist/vis-network.min.js"></script>
 
-        #main-container {
-            display: flex;
-            height: 100vh;
-            width: 100vw;
-        }
+  <!-- Showdown (markdown) -->
+  <script src="https://cdn.jsdelivr.net/npm/showdown@1.9.1/dist/showdown.min.js"></script>
 
-        #network-container {
-            flex-grow: 1;
-        }
-        
-        #network-container.hidden { display: none; }
+  <!-- html2pdf for PDF export (client-side) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
-        #reading-panel {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--panel-bg);
-            box-shadow: -4px 0 10px rgba(0, 0, 0, 0.1);
-            transform: translateX(100%);
-            transition: transform 0.5s ease-in-out;
-            overflow-y: auto;
-            padding: 2rem;
-            box-sizing: border-box;
-            z-index: 10;
-        }
-        
-        #reading-panel.active {
-            transform: translateX(0);
-        }
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#0f1724;
+      --muted:#9aa4b2;
+      --accent:#ffb86b;
+      --star:#ffd7a8;
+      --glass: rgba(255,255,255,0.04);
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;}
+    body{background:var(--bg); color:#e6eef8; overflow:hidden; -webkit-font-smoothing:antialiased;}
+    /* Layout */
+    #app{position:relative;height:100vh;width:100vw;display:flex}
+    #canvas-wrap{position:absolute;inset:0;z-index:0;overflow:hidden}
+    canvas#starfield{width:100%;height:100%;display:block}
 
-        .reading-panel-content { max-width: 64rem; margin: auto; }
-        
-        .prose h2 {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--header-color);
-            margin-top: 0;
-        }
+    /* Control panels */
+    .left-panel, .right-panel{position: absolute; top:0; bottom:0; width:320px; max-width:80vw; z-index:50; display:flex; flex-direction:column; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.012)); box-shadow: 0 6px 30px rgba(0,0,0,0.6); backdrop-filter: blur(6px); border-right:1px solid rgba(255,255,255,0.03)}
+    .left-panel{left:12px;border-radius:10px}
+    .right-panel{right:12px;border-radius:10px}
 
-        #close-panel-btn {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            font-size: 2rem;
-            cursor: pointer;
-            border: none;
-            background: none;
-            color: var(--text-color);
-            z-index: 20;
-        }
-        
-        #contributors-panel {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 250px;
-            background-color: var(--panel-bg);
-            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
-            height: 100%;
-            overflow-y: auto;
-            transition: width 0.5s;
-            z-index: 5;
-        }
-        
-        #contributors-panel.collapsed { width: 50px; }
+    .panel-header{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;gap:10px}
+    .panel-title{font-family:'Cormorant Garamond', serif;font-size:18px;color:var(--accent)}
+    .panel-body{overflow:auto;padding:12px;flex:1}
 
-        .contributor-item {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .contributor-item:hover { background-color: var(--collapsible-hover-bg); }
+    .toggle-btn{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.25);border:none;padding:6px 10px;border-radius:8px;color:var(--star);cursor:pointer;font-weight:600}
+    /* Contributors list */
+    .contributor-item{display:flex;gap:10px;align-items:center;padding:8px;border-radius:8px;margin-bottom:8px;cursor:pointer}
+    .contributor-item:hover{background:rgba(255,255,255,0.02)}
+    .contributor-item img{width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,0.06)}
+    .contributor-name{font-weight:600;color:#fff}
 
-        .contributor-item img {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            margin-right: 0.5rem;
-        }
+    /* Features */
+    .feature{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;margin-bottom:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02)}
+    .feature button{background:none;border:1px solid rgba(255,255,255,0.06);padding:6px 10px;border-radius:8px;color:var(--star);cursor:pointer}
 
-        .contributor-item .contributor-name {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+    /* Network container */
+    #network-wrap{position:absolute;left:0;right:0;top:0;bottom:0;padding:0;margin:0;z-index:10}
+    #network{width:100%;height:100%}
 
-        #contributors-toggle-btn {
-            position: absolute;
-            left: 100%;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: var(--collapsible-header-bg);
-            border: 1px solid var(--border-color);
-            padding: 0.5rem;
-            cursor: pointer;
-            border-top-right-radius: 0.5rem;
-            border-bottom-right-radius: 0.5rem;
-        }
+    /* Reading panel */
+    #reading-panel{position:absolute;right:0;bottom:0;top:0;width:min(720px,92vw);max-width:100%;background:linear-gradient(180deg, rgba(20,22,30,0.96), rgba(8,10,15,0.98));z-index:60;transform:translateX(104%);transition:transform .38s ease;border-left:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column}
+    #reading-panel.open{transform:translateX(0)}
+    .reading-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.03)}
+    .reading-title{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--accent)}
+    .reading-body{overflow:auto;padding:20px;flex:1}
+    .reading-meta{color:var(--muted);font-size:13px;margin-top:6px}
 
-        #theme-toggle {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            width: 3rem;
-            height: 3rem;
-            background-color: var(--header-color);
-            color: var(--panel-bg);
-            border-radius: 50%;
-            display: grid;
-            place-items: center;
-            font-size: 1.5rem;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s;
-            z-index: 10;
-        }
-        
-        .dark-mode #theme-toggle { background-color: #f5f5f5; color: #1a1a1a; }
-    </style>
+    .close-reading{background:none;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:10px;color:var(--star);cursor:pointer}
+
+    /* small screens */
+    @media (max-width:900px){
+      .left-panel{left:8px; width:68vw}
+      .right-panel{right:8px; width:68vw}
+      #reading-panel{width:100%;transform:translateY(100%);bottom:-2px;right:0;top:auto;height:72%;border-left:none;border-top:1px solid rgba(255,255,255,0.03)}
+      #reading-panel.open{transform:translateY(0)}
+    }
+
+    /* star legend */
+    .legend{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:55;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:10px 16px;border-radius:999px;font-size:13px;color:var(--muted);border:1px solid rgba(255,255,255,0.03)}
+    .logo{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:70;font-family:'Cormorant Garamond',serif;color:var(--accent);font-size:18px;letter-spacing:0.6px}
+    .cta-small{font-size:12px;color:var(--muted);margin-top:6px}
+
+    /* small card for node info */
+    .node-card{background:rgba(0,0,0,0.45);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);max-width:300px;color:#fff}
+    .node-card h4{margin:0 0 6px 0;font-family:'Cormorant Garamond';color:var(--accent)}
+    .node-card p{margin:0;font-size:13px;color:var(--muted)}
+
+  </style>
 </head>
-<body class="font-inter">
-    <div id="main-container">
-        <div id="network-container"></div>
-        <div id="contributors-panel">
-            <h3 style="text-align: center; margin: 1rem 0; font-weight: bold;">Contributors</h3>
-            <div id="contributors-list"></div>
-            <button id="contributors-toggle-btn">◀</button>
-        </div>
-        <div id="reading-panel">
-            <button id="close-panel-btn">&times;</button>
-            <div class="reading-panel-content" id="reading-panel-story-display"></div>
-        </div>
+<body>
+  <div id="app">
+    <!-- canvas background -->
+    <div id="canvas-wrap" aria-hidden="true">
+      <canvas id="starfield"></canvas>
     </div>
 
-    <button id="theme-toggle" aria-label="Toggle dark mode">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path id="moon-path" d="M12.3,4.6a0.8,0.8,0,0,0,1.2,0c0.1-0.1,0.2-0.2,0.2-0.3a8.8,8.8,0,0,1,0.2-1.2A9.9,9.9,0,1,0,21.5,13.6,10.1,10.1,0,0,1,12.3,4.6Z" />
-            <path id="sun-path" d="M12,18a6,6,0,1,1,6-6A6,6,0,0,1,12,18ZM22,12h2a1,1,0,0,0,0-2H22a1,1,0,0,0,0,2ZM2,12H0a1,1,0,0,0,0,2H2a1,1,0,0,0,0-2Zm10-8a1,1,0,0,0,0,2V4a1,1,0,0,0,0-2ZM12,22a1,1,0,0,0,0-2v2a1,1,0,0,0,0-2ZM19.2,20.8a1,1,0,0,0,.7-.3,1,1,0,0,0,0-1.4L18.4,18a1,1,0,0,0-1.4,1.4l1.5,1.5A1,1,0,0,0,19.2,20.8ZM4.8,3.2a1,1,0,0,0-.7,0,1,1,0,0,0-.7.7L3.2,4.8a1,1,0,0,0,1.4,1.4l1.5-1.5A1,1,0,0,0,4.8,3.2ZM3.2,19.2a1,1,0,0,0-.3-.7,1,1,0,0,0-1.4,0L1.7,20.8a1,1,0,0,0,1.4,1.4l1.5-1.5A1,1,0,0,0,3.2,19.2ZM19.2,3.2a1,1,0,0,0-1.4,0L17.7,4.8a1,1,0,0,0,1.4,1.4l1.5-1.5A1,1,0,0,0,19.2,3.2Z"/>
-        </svg>
-    </button>
+    <!-- left: contributors -->
+    <div class="left-panel" id="leftPanel" role="complementary" aria-label="Contributors panel">
+      <div class="panel-header"><div class="panel-title">Constellation</div><div style="margin-left:auto;font-size:13px;color:var(--muted)">Hacktoberfest 2025</div></div>
+      <div class="panel-body" id="contributorsBody">
+        <div style="margin-bottom:8px;color:var(--muted);font-size:13px">Tap a star on the map to read. Click a contributor to focus their nodes.</div>
+        <div id="contributorsList" style="display:grid;grid-template-columns:1fr;gap:6px"></div>
+      </div>
+    </div>
 
-    <script>
-        const networkContainer = document.getElementById('network-container');
-        const readingPanel = document.getElementById('reading-panel');
-        const readingPanelStoryDisplay = document.getElementById('reading-panel-story-display');
-        const closePanelBtn = document.getElementById('close-panel-btn');
-        const themeToggle = document.getElementById('theme-toggle');
-        const contributorsPanel = document.getElementById('contributors-panel');
-        const contributorsToggleBtn = document.getElementById('contributors-toggle-btn');
-        const contributorsList = document.getElementById('contributors-list');
-        const converter = new showdown.Converter();
+    <!-- right: features -->
+    <div class="right-panel" id="rightPanel" role="navigation" aria-label="Features panel">
+      <div class="panel-header"><div class="panel-title">Features</div></div>
+      <div class="panel-body" id="featuresBody">
+        <div class="feature">
+          <div>
+            <div style="font-weight:700">Reading Mode</div>
+            <div style="font-size:13px;color:var(--muted)">Open chapters in immersive reading panel</div>
+          </div>
+          <div><button id="btnReadingMode">Open</button></div>
+        </div>
 
-        let chapters = {};
-        let network;
-        let originalNodes;
+        <div class="feature">
+          <div>
+            <div style="font-weight:700">Download Chapter</div>
+            <div style="font-size:13px;color:var(--muted)">Export the open chapter as PDF</div>
+          </div>
+          <div><button id="btnDownload">Download</button></div>
+        </div>
 
-        const toggleDarkMode = () => {
-            const isDark = document.body.classList.toggle('dark-mode');
-            localStorage.setItem('dark-mode', isDark);
-            document.getElementById('moon-path').style.display = isDark ? 'inline' : 'none';
-            document.getElementById('sun-path').style.display = isDark ? 'none' : 'inline';
-        };
-        themeToggle.addEventListener('click', toggleDarkMode);
-        if (localStorage.getItem('dark-mode') === 'true' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.body.classList.add('dark-mode');
+        <div class="feature">
+          <div>
+            <div style="font-weight:700">Theme</div>
+            <div style="font-size:13px;color:var(--muted)">Toggle dark / soft mode</div>
+          </div>
+          <div><button id="btnTheme">🌙</button></div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0">
+
+        <div style="margin-bottom:8px;color:var(--muted);font-size:13px">Quick Index (tap to jump)</div>
+        <div id="quickIndex" style="display:flex;flex-direction:column;gap:8px"></div>
+
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0">
+        <div style="color:var(--muted);font-size:13px">Legend: Stars are nodes — brighter ones have more branches</div>
+      </div>
+    </div>
+
+    <!-- network -->
+    <div id="network-wrap"><div id="network"></div></div>
+
+    <!-- reading panel -->
+    <aside id="reading-panel" aria-hidden="true">
+      <div class="reading-header">
+        <div>
+          <div class="reading-title" id="readingTitle">Chapter</div>
+          <div class="reading-meta" id="readingMeta">by unknown</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="close-reading" id="downloadCurrent">Save PDF</button>
+          <button class="close-reading" id="closeReading">Close</button>
+        </div>
+      </div>
+      <div class="reading-body" id="readingBody"></div>
+    </aside>
+
+    <div class="logo">Once Upon a Commit — The Constellation</div>
+    <div class="legend">Tap a star → open chapter · Click contributor → highlight · <span class="cta-small"> Mobile friendly • Live updates</span></div>
+  </div>
+
+  <script>
+  /*****************************************************************************
+   * Frontend app for "The Constellation Book"
+   * - Fetches /api/stories
+   * - Renders a network with vis-network styled as a star-map
+   * - Displays chapters in reading panel (showdown)
+   * - Contributors list -> highlight their nodes
+   * - PDF export of the open chapter (html2pdf)
+   * - Responsive + mobile friendly + no env required
+   *****************************************************************************/
+
+  (function(){
+    // DOM refs
+    const networkEl = document.getElementById('network');
+    const readingPanel = document.getElementById('reading-panel');
+    const readingTitle = document.getElementById('readingTitle');
+    const readingMeta = document.getElementById('readingMeta');
+    const readingBody = document.getElementById('readingBody');
+    const closeReading = document.getElementById('closeReading');
+    const btnReadingMode = document.getElementById('btnReadingMode');
+    const btnDownload = document.getElementById('btnDownload');
+    const btnTheme = document.getElementById('btnTheme');
+    const downloadCurrent = document.getElementById('downloadCurrent');
+    const quickIndex = document.getElementById('quickIndex');
+    const contributorsList = document.getElementById('contributorsList');
+
+    let chaptersMap = {}; // filename -> { filename, metadata, content }
+    let contributors = []; // array
+    let network, data, nodesDS, edgesDS;
+    let currentOpen = null;
+    const converter = new showdown.Converter({tables:true, simplifiedAutoLink:true, strikethrough:true, tasklists:true});
+
+    // ------- fetch data from /api/stories (no env required) -------
+    async function loadStories(){
+      try {
+        const res = await fetch('/api/stories');
+        if(!res.ok) throw new Error('Failed to fetch /api/stories');
+        const json = await res.json();
+
+        json.chapters.forEach(c=>{
+          chaptersMap[c.filename] = c;
+        });
+        contributors = json.contributors || [];
+
+        buildNetwork(json.chapters);
+        renderContributors(contributors);
+        buildQuickIndex(json.chapters);
+      } catch(err){
+        console.error(err);
+        networkEl.innerHTML = `<div style="padding:20px;color:#f8d7da">Failed to load story network. Check server. (${err.message})</div>`;
+      }
+    }
+
+    // ------- build quick index (left side list of root nodes) -------
+    function buildQuickIndex(chapters){
+      // take top-level nodes (no parent) or we can sort by filename
+      const tops = chapters.filter(c => !c.metadata.parent || c.metadata.parent.trim()==='').sort((a,b)=> a.filename.localeCompare(b.filename));
+      quickIndex.innerHTML = '';
+      tops.slice(0,20).forEach(t=>{
+        const btn = document.createElement('button');
+        btn.className = 'feature';
+        btn.style.justifyContent = 'space-between';
+        btn.innerHTML = `<div style="font-weight:700">${t.metadata.title}</div><div style="font-size:12px;color:var(--muted)">${t.metadata.author||'—'}</div>`;
+        btn.onclick = ()=> openNode(t.filename);
+        quickIndex.appendChild(btn);
+      });
+    }
+
+    // ------- render contributors list -------
+    function renderContributors(list){
+      contributorsList.innerHTML = '';
+      list.forEach(c=>{
+        const el = document.createElement('div');
+        el.className = 'contributor-item';
+        el.innerHTML = `<img crossorigin="anonymous" src="${c.avatar_url}" alt="${c.login}"><div><div class="contributor-name">${c.login}</div><div style="font-size:12px;color:var(--muted)">nodes: ${c.contributedNodes.length||0}</div></div>`;
+        el.onclick = ()=> highlightByAuthor(c.login);
+        contributorsList.appendChild(el);
+      });
+    }
+
+    // ------- highlight nodes by author -------
+    function highlightByAuthor(login){
+      const all = nodesDS.get();
+      const byAuthor = Object.values(chaptersMap).filter(ch => ch.metadata.author === login).map(ch => ch.filename);
+
+      const updated = all.map(n=>{
+        if(byAuthor.includes(n.id)){
+          return { id: n.id, color: {background:'#ffe8c8', border:'#ffb86b'}, size: Math.max((n.value||10), 18) };
+        } else {
+          return { id: n.id, color: {background:'#1f2a44', border:'#2b3b5a'}, size: Math.max((n.value||10), 8) };
         }
+      });
+      nodesDS.update(updated);
+      if(byAuthor.length) network.fit({ nodes: byAuthor, animation: { duration: 600, easingFunction: 'easeInOutQuad' }});
+    }
 
-        const fetchStories = async () => {
-            try {
-                const apiRes = await fetch('/api/stories');
-                if (!apiRes.ok) throw new Error('Failed to fetch stories from API.');
-                const data = await apiRes.json();
-                
-                let nodes = [];
-                let edges = [];
+    // ------- open node in reading panel -------
+    function openNode(filename){
+      const node = chaptersMap[filename];
+      if(!node) return;
 
-                data.chapters.forEach(chapter => {
-                    const id = chapter.filename;
-                    const label = chapter.metadata.title;
-                    chapters[id] = chapter;
-                    nodes.push({ id, label, author: chapter.metadata.author, color: { background: '#D2E5FF', border: '#2B7CE9' } });
+      currentOpen = filename;
+      readingTitle.textContent = node.metadata.title || 'Untitled';
+      readingMeta.textContent = `by ${node.metadata.author || 'unknown'} • ${filename}`;
+      readingBody.innerHTML = converter.makeHtml(node.content || '');
 
-                    if (chapter.metadata.parent) {
-                        edges.push({ from: chapter.metadata.parent, to: id });
-                    }
-                });
+      // open panel
+      readingPanel.classList.add('open');
+      // ensure visible
+      setTimeout(()=> window.scrollTo({top:0, behavior:'smooth'}), 200);
+    }
 
-                originalNodes = new vis.DataSet(nodes);
-                const visData = { nodes: originalNodes, edges: new vis.DataSet(edges) };
-                const options = {
-                    interaction: { hover: true, navigationButtons: true },
-                    edges: { smooth: { type: 'continuous' } },
-                    physics: { enabled: true, solver: 'barnesHut' },
-                    nodes: { shape: 'dot', size: 10, font: { face: 'Inter', size: 16 } }
-                };
-                network = new vis.Network(networkContainer, visData, options);
+    // ------- close reading panel -------
+    closeReading.onclick = ()=>{ readingPanel.classList.remove('open'); currentOpen = null; }
 
-                network.on('click', function(params) {
-                    if (params.nodes.length > 0) {
-                        const nodeId = params.nodes[0];
-                        const chapter = chapters[nodeId];
-                        if (chapter) {
-                            displayChapterInPanel(chapter);
-                        }
-                    }
-                });
-                
-                // Populate contributors list
-                renderContributors(data.contributors);
+    // ------- pdf download for current open node -------
+    btnDownload.onclick = async ()=>{
+      if(!currentOpen) { alert('Open a chapter to download.'); return; }
+      await exportChapterAsPDF(currentOpen);
+    }
+    downloadCurrent.onclick = async ()=> { if(currentOpen) await exportChapterAsPDF(currentOpen); }
 
-            } catch (error) {
-                console.error("Error fetching stories:", error);
-                alert("Failed to load the story network. Check the console for details.");
-            }
-        };
+    async function exportChapterAsPDF(filename){
+      const node = chaptersMap[filename];
+      if(!node) return;
+      // create a clone element to style nicely for pdf
+      const pdfWrap = document.createElement('div');
+      pdfWrap.style.padding = '36px';
+      pdfWrap.style.background = '#fff';
+      pdfWrap.style.color = '#111';
+      pdfWrap.innerHTML = `
+        <h1 style="font-family: 'Cormorant Garamond', serif; font-size:28px; color:#111; margin-bottom:6px">${escapeHtml(node.metadata.title||'Untitled')}</h1>
+        <div style="font-size:13px;color:#555;margin-bottom:16px">by ${escapeHtml(node.metadata.author||'unknown')}</div>
+        <div>${converter.makeHtml(node.content||'')}</div>
+        <hr style="margin-top:20px;border:none;border-top:1px solid #eee">
+        <div style="font-size:11px;color:#888;margin-top:8px">Once Upon a Commit — The Constellation</div>
+      `;
+      document.body.appendChild(pdfWrap);
+      const opt = { margin: 10, filename: `${sanitizeFilename(node.metadata.title||filename)}.pdf`, image:{type:'jpeg',quality:0.95}, html2canvas:{scale:2}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}};
+      try {
+        await html2pdf().set(opt).from(pdfWrap).save();
+      } catch(e){ console.error(e); alert('Export failed.'); }
+      pdfWrap.remove();
+    }
 
-        const displayChapterInPanel = (chapter) => {
-            const chapterContent = converter.makeHtml(chapter.content);
-            readingPanelStoryDisplay.innerHTML = `
-                <h2 class="font-garamond mb-4">${chapter.metadata.title}</h2>
-                <p class="text-sm text-gray-500 mb-6 italic">by ${chapter.metadata.author}</p>
-                <div class="prose dark:prose-invert">${chapterContent}</div>
-            `;
-            readingPanel.classList.add('active');
-        };
+    // ------- network rendering -------
+    function buildNetwork(chapters){
+      // nodes: id=filename, label=title
+      const nodes = [];
+      const edges = [];
+      const degreeCount = {};
+      chapters.forEach(c=>{
+        const id = c.filename;
+        const title = c.metadata.title || id;
+        const author = c.metadata.author || 'unknown';
+        degreeCount[id] = degreeCount[id] || 0;
+        nodes.push({ id, label: title, title: title, author, value: 10 }); // value used for sizing
+        if(c.metadata.parent) {
+          edges.push({ from: c.metadata.parent, to: id });
+          degreeCount[c.metadata.parent] = (degreeCount[c.metadata.parent]||0) + 1;
+          degreeCount[id] = (degreeCount[id]||0) + 1;
+        }
+      });
 
-        closePanelBtn.addEventListener('click', () => {
-            readingPanel.classList.remove('active');
+      // update node sizes by degree
+      nodes.forEach(n => {
+        const deg = degreeCount[n.id] || 0;
+        const size = Math.min(8 + deg*6, 28);
+        n.size = size;
+        // color by degree (brighter = more branches)
+        const glow = Math.min(60 + deg*40, 255);
+        n.color = { background: `rgba(${255},${200},${120},${0.95})`, border: '#ffb86b', highlight: { background:'#fff1e6' } };
+        n.shape = 'dot';
+      });
+
+      nodesDS = new vis.DataSet(nodes);
+      edgesDS = new vis.DataSet(edges);
+      data = { nodes: nodesDS, edges: edgesDS };
+
+      const options = {
+        autoResize: true,
+        interaction: { hover:true, tooltipDelay:100, navigationButtons:true, multiselect:false },
+        nodes: { font:{face:'Inter',size:14,color:'#08162A'}, scaling:{min:8,max:32} },
+        edges: { color: 'rgba(255,255,255,0.06)', smooth: { enabled:true, type:'dynamic' } },
+        physics: { stabilization:false, barnesHut:{gravitationalConstant:-24000, springLength:120, springConstant:0.001} },
+        layout: { improvedLayout:true }
+      };
+
+      network = new vis.Network(networkEl, data, options);
+
+      network.on('click', params => {
+        if(params.nodes && params.nodes.length>0){
+          const id = params.nodes[0];
+          openNode(id);
+        }
+      });
+
+      // tooltip style
+      network.on('hoverNode', function(params){ /* could show ephemeral tooltip */ });
+    }
+
+    // ------- helpers -------
+    function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function sanitizeFilename(s){ return (s||'chapter').replace(/[^a-z0-9_\- ]/gi,'_').trim(); }
+
+    // ------- theme toggle -------
+    let dark = true;
+    btnTheme.onclick = ()=> {
+      dark = !dark;
+      if(dark){ document.documentElement.style.setProperty('--bg','#0b1020'); document.documentElement.style.setProperty('--panel','#0f1724'); btnTheme.textContent='🌙' }
+      else { document.documentElement.style.setProperty('--bg','#f7f7f7'); document.documentElement.style.setProperty('--panel','#ffffff'); btnTheme.textContent='☀️'; }
+      document.body.style.background = getComputedStyle(document.documentElement).getPropertyValue('--bg');
+    };
+
+    // ------- reading mode button: open last selected or first node -------
+    btnReadingMode.onclick = ()=>{
+      if(currentOpen) { readingPanel.classList.add('open'); return; }
+      // if nothing open, open first node
+      const ids = nodesDS.getIds();
+      if(ids.length) openNode(ids[0]);
+    };
+
+    // ------- starfield canvas background -------
+    (function starfield(){
+      const canvas = document.getElementById('starfield');
+      const ctx = canvas.getContext('2d');
+      let w=0,h=0, DPR=window.devicePixelRatio||1;
+      function resize(){ w = canvas.width = Math.floor(window.innerWidth*DPR); h = canvas.height = Math.floor(window.innerHeight*DPR); canvas.style.width = window.innerWidth + 'px'; canvas.style.height = window.innerHeight + 'px'; ctx.scale(DPR,DPR); initStars(); }
+      window.addEventListener('resize', resize);
+
+      let stars=[];
+      function initStars(){
+        stars = [];
+        const count = Math.floor((window.innerWidth+window.innerHeight)/8);
+        for(let i=0;i<count;i++){
+          stars.push({
+            x: Math.random()*window.innerWidth,
+            y: Math.random()*window.innerHeight,
+            r: (Math.random()*1.8)+0.4,
+            alpha: Math.random()*0.9 + 0.1,
+            twinkle: Math.random()*0.02+0.005,
+            vx: (Math.random()-0.5)*0.02,
+            vy: (Math.random()-0.5)*0.02
+          });
+        }
+      }
+
+      let mouseX=window.innerWidth/2, mouseY=window.innerHeight/2;
+      window.addEventListener('mousemove', e=>{ mouseX = e.clientX; mouseY = e.clientY; });
+      window.addEventListener('touchmove', e=>{ if(e.touches && e.touches[0]){ mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY } },{passive:true});
+
+      function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        // subtle gradient nebula
+        const g = ctx.createLinearGradient(0,0,0,window.innerHeight);
+        g.addColorStop(0, 'rgba(10,14,28,0.6)');
+        g.addColorStop(1, 'rgba(2,6,12,0.9)');
+        ctx.fillStyle = g; ctx.fillRect(0,0,window.innerWidth,window.innerHeight);
+
+        // draw stars
+        stars.forEach(s=>{
+          // parallax move based on mouse
+          const dx = (mouseX - window.innerWidth/2)/window.innerWidth;
+          const dy = (mouseY - window.innerHeight/2)/window.innerHeight;
+          const px = s.x + dx*20*(s.r);
+          const py = s.y + dy*20*(s.r);
+          s.alpha += (Math.random()*0.02 - 0.01) * s.twinkle;
+          if(s.alpha < 0.15) s.alpha = 0.15;
+          if(s.alpha > 1) s.alpha = 1;
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255,${220 - s.r*40},${160 - s.r*20},${s.alpha})`;
+          ctx.arc(px, py, s.r, 0, Math.PI*2);
+          ctx.fill();
         });
-        
-        contributorsToggleBtn.addEventListener('click', () => {
-            contributorsPanel.classList.toggle('collapsed');
-            contributorsToggleBtn.textContent = contributorsPanel.classList.contains('collapsed') ? '▶' : '◀';
-        });
 
-        const renderContributors = (contributors) => {
-            contributorsList.innerHTML = '';
-            contributors.forEach(contributor => {
-                const item = document.createElement('div');
-                item.classList.add('contributor-item');
-                item.innerHTML = `
-                    <img src="${contributor.avatar_url}" alt="${contributor.login}">
-                    <span class="contributor-name">${contributor.login}</span>
-                `;
-                item.addEventListener('click', () => highlightNodesByAuthor(contributor.login));
-                contributorsList.appendChild(item);
-            });
-        };
+        requestAnimationFrame(draw);
+      }
 
-        const highlightNodesByAuthor = (author) => {
-            const allNodes = originalNodes.getIds();
-            const contributedNodes = Object.values(chapters).filter(c => c.metadata.author === author).map(c => c.filename);
+      resize(); draw();
+    })();
 
-            const updatedNodes = allNodes.map(nodeId => {
-                let color;
-                if (contributedNodes.includes(nodeId)) {
-                    color = { background: '#FFC0CB', border: '#FF69B4' }; // Pink for highlighting
-                } else {
-                    color = { background: '#e0e0e0', border: '#979797' }; // Grey out others
-                }
-                return { id: nodeId, color };
-            });
+    // start
+    loadStories();
 
-            originalNodes.update(updatedNodes);
-            network.fit({ nodes: contributedNodes }); // Zoom in on the contributed nodes
-        };
-
-        fetchStories();
-    </script>
+    // expose for debugging
+    window.__OUC = { openNode, chaptersMap };
+  })();
+  </script>
 </body>
 </html>
