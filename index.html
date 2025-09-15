@@ -434,7 +434,8 @@ degreeCount[id] = (degreeCount[id]||0) + 1;
 // update node sizes by degree
 nodes.forEach(n => {
 const deg = degreeCount[n.id] || 0;
-const size = Math.min(8 + deg*6, 28);
+const isMobile = window.innerWidth < 900;
+const size = Math.min(8 + deg*6, isMobile ? 18 : 28); // cap smaller on mobile
 n.size = size;
 // color by degree (brighter = more branches)
 const glow = Math.min(60 + deg*40, 255);
