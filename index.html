@@ -83,6 +83,42 @@ padding-bottom: 8px;
 margin: 0 0 12px 0;
 }
 .panel-body-group:last-child { margin-bottom: 0; }
+/* Limit and scroll Contributors list */
+#contributorsList {
+  max-height: 250px;       /* cap height */
+  overflow-y: auto;        /* scroll if too many */
+  padding-right: 4px;      /* avoid scrollbar overlap */
+}
+
+/* Limit and scroll Features list */
+.panel-body-group:nth-of-type(3) {
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Custom scrollbar styling */
+#contributorsList::-webkit-scrollbar,
+.panel-body-group:nth-of-type(3)::-webkit-scrollbar {
+  width: 6px;
+}
+
+#contributorsList::-webkit-scrollbar-track,
+.panel-body-group:nth-of-type(3)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#contributorsList::-webkit-scrollbar-thumb,
+.panel-body-group:nth-of-type(3)::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.15);
+  border-radius: 999px;
+}
+
+#contributorsList::-webkit-scrollbar-thumb:hover,
+.panel-body-group:nth-of-type(3)::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255,255,255,0.25);
+}
+
 /* Contributors list */
 .contributor-item{display:flex;gap:10px;align-items:center;padding:8px;border-radius:8px;margin-bottom:8px;cursor:pointer}
 .contributor-item:hover{background:rgba(255,255,255,0.02)}
@@ -215,8 +251,10 @@ z-index: 55;
 </div>
 <div class="panel-body">
 <div class="panel-body-group">
-<h3>Quick Index</h3>
-<div id="quickIndex" style="display:flex;flex-direction:column;gap:8px"></div>
+  <h3>Quick Index</h3>
+  <input type="text" id="quickIndexSearch" placeholder="Search chapters..."
+    style="margin-bottom:8px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:var(--glass);color:#fff;width:100%;box-sizing:border-box;">
+  <div id="quickIndex" style="display:flex;flex-direction:column;gap:8px"></div>
 </div>
 <div class="panel-body-group">
 <h3>Contributors</h3>
@@ -335,6 +373,18 @@ btn.onclick = ()=> openNode(t.filename);
 quickIndex.appendChild(btn);
 });
 }
+
+// ------- quick index search -------
+document.getElementById('quickIndexSearch').addEventListener('input', function(e) {
+  const term = e.target.value.toLowerCase();
+  const buttons = quickIndex.querySelectorAll('button');
+  buttons.forEach(btn => {
+    const title = btn.innerText.toLowerCase();
+    btn.style.display = title.includes(term) ? 'flex' : 'none';
+  });
+});
+
+
 // ------- render contributors list -------
 function renderContributors(list){
 contributorsList.innerHTML = '';
@@ -489,7 +539,7 @@ if(ids.length) openNode(ids[0]);
 };
 // ------- sidebar toggle for mobile -------
 mobileMenuToggle.onclick = () => {
-sidebarPanel.classList.add('open');
+sidebarPanel.classList.toggle('open');
 };
 closeSidebar.onclick = () => {
 sidebarPanel.classList.remove('open');
