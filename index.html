@@ -347,15 +347,16 @@ json.chapters.forEach(c=>{
 chaptersMap[c.filename] = c;
 });
 contributors = json.contributors || [];
-const rootNodeId = buildNetwork(json.chapters); // MODIFIED: Capture root node ID
+const rootNodeId = buildNetwork(json.chapters); // Capture root node ID
 renderContributors(contributors);
 buildQuickIndex(json.chapters);
-
 // NEW: Center on the root node after network is built and physics settle
 if (rootNodeId) {
 setTimeout(() => {
+// We set a slightly smaller scale for the focus animation on mobile
+const focusScale = window.innerWidth < 900 ? 1.0 : 1.5;
 network.focus(rootNodeId, {
-scale: 1.5,
+scale: focusScale,
 animation: {
 duration: 800,
 easingFunction: 'easeInOutQuad'
@@ -363,7 +364,6 @@ easingFunction: 'easeInOutQuad'
 });
 }, 500); // Give the initial layout a moment to stabilize
 }
-
 } catch(err){
 console.error(err);
 networkEl.innerHTML = `<div style="padding:20px;color:#f8d7da">Failed to load story network. Check server. (${err.message})</div>`;
@@ -409,10 +409,12 @@ const all = nodesDS.get();
 const byAuthor = Object.values(chaptersMap).filter(ch => ch.metadata.author === login).map(ch => ch.filename);
 const defaultNodes = all.map(n => ({
 id: n.id,
-color: n.id in chaptersMap ?
-{ background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background: '#fff1e6' } } :
-{ background:'#1f2a44', border:'#2b3b5a', highlight: { background:'#445a86' } },
-size: Math.min(8 + (chaptersMap[n.id] ? (chaptersMap[n.id].degreeCount || 0) : 0) * 6, 28)
+// Retain the sun/nebula style for the root node if it's the root node, otherwise use standard style
+color: n.id === network.body.data.nodes.get().find(node => node.shape === 'star')?.id
+? n.color // Keep the custom color
+: { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background: '#fff1e6' } },
+size: n.size,
+shape: n.shape
 }));
 if(byAuthor.length){
 const updatedNodes = defaultNodes.map(n => {
@@ -482,7 +484,7 @@ function buildNetwork(chapters){
 const nodes = [];
 const edges = [];
 const degreeCount = {};
-let rootNodeId = null; // NEW: To store the ID of the root node
+let rootNodeId = null; // To store the ID of the root node
 chapters.forEach(c=>{
 const id = c.filename;
 const title = c.metadata.title || id;
@@ -503,28 +505,29 @@ nodes.forEach(n => {
 const deg = degreeCount[n.id] || 0;
 const isMobile = window.innerWidth < 900;
 let size = Math.min(8 + deg*6, isMobile ? 18 : 28); // cap smaller on mobile
-
 if (n.id === rootNodeId) {
-// MODIFIED: Apply special "Sun/Nebula" style to the root node
-size = isMobile ? 32 : 50; // Make it significantly larger
+// MODIFIED: Apply special, much bigger "Sun/Nebula" style to the root node
+// Significantly larger for prominence on all devices
+size = isMobile ? 40 : 80;
 n.color = {
-background: '#FFD700', // Gold/Sun-like background
+background: '#FFFF88', // Very bright yellow center
 border: '#FFA500',   // Orange border
 highlight: { background:'#FFFACD', border: '#FFC700' }
 };
-n.font = { size: isMobile ? 16 : 22, color: '#000000', face: 'Cormorant Garamond' }; // Dark text on bright background
-n.shadow = { enabled: true, color: 'rgba(255,165,0,0.8)', size: 30, x: 0, y: 0 }; // Outer glow effect (the nebula visual)
+// Use a stronger, larger shadow for the nebula effect
+n.shadow = { enabled: true, color: 'rgba(255, 100, 0, 0.9)', size: 50, x: 0, y: 0 };
+n.shape = 'star'; // Use a star shape for a sun-like appearance
+n.font = { size: isMobile ? 18 : 28, color: '#000000', face: 'Cormorant Garamond', strokeWidth: 0 };
 } else {
 n.color = { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background:'#fff1e6' } };
+n.shape = 'dot';
 }
-
 n.size = size;
 // color by degree (brighter = more branches)
 // Removed original color logic to allow sun style to take precedence
-n.shape = 'dot';
+// n.shape = 'dot'; // REMOVED: This line was overriding the root node's star shape
 });
 chaptersMap[rootNodeId].degreeCount = degreeCount[rootNodeId]; // Ensure degreeCount is saved for the root node
-
 nodesDS = new vis.DataSet(nodes);
 edgesDS = new vis.DataSet(edges);
 data = { nodes: nodesDS, edges: edgesDS };
@@ -545,8 +548,7 @@ openNode(id);
 });
 // tooltip style
 network.on('hoverNode', function(params){ /* could show ephemeral tooltip */ });
-
-return rootNodeId; // MODIFIED: Return the root node ID for focusing
+return rootNodeId; // Return the root node ID for focusing
 }
 // ------- helpers -------
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
