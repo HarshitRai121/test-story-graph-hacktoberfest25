@@ -483,15 +483,15 @@ n.color = { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: 
 n.shape = 'dot';
 // START modification for 'chapter01.md'**
     if(n.id === 'chapter01.md') {
-        n.size = isMobile ? 40 : 80; // Extremely bigger
-        n.shape = 'star'; // Galaxy-type look (star shape)
+        n.size = isMobile ? 60 : 120; // Changed to 120 (desktop) and 60 (mobile) for a 'much bigger' sphere
+        n.shape = 'circle'; // Changed to spherical 'circle'
         n.color = {
-            background: 'rgba(100, 100, 255, 0.8)', // Blue/Purple Nebula core
-            border: '#8a2be2', // BlueViolet border
-            highlight: { background: 'rgba(150, 150, 255, 1)', border: '#8a2be2' },
+            background: 'rgba(128, 0, 255, 0.9)', // Deep Violet Core
+            border: '#8A2BE2', // BlueViolet Border
+            highlight: { background: 'rgba(153, 50, 204, 1)', border: '#DA70D6' }, // Thistle/Orchid for highlight glow
         };
         // Make the label more visible/styled for the origin
-        n.font = { size: isMobile ? 18 : 24, color: '#fff', face: 'Cormorant Garamond, serif' };
+        n.font = { size: isMobile ? 22 : 30, color: '#fff', face: 'Cormorant Garamond, serif', strokeWidth: 4, strokeColor: 'rgba(0,0,0,0.5)' };
     }
 // END modification for 'chapter01.md'**
 });
