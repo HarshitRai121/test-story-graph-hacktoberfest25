@@ -481,20 +481,61 @@ n.size = size;
 const glow = Math.min(60 + deg*40, 255);
 n.color = { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background:'#fff1e6' } };
 n.shape = 'dot';
-// START modification for 'chapter01.md'**
-    if(n.id === 'chapter01.md') {
-        n.size = isMobile ? 60 : 120; // Changed to 120 (desktop) and 60 (mobile) for a 'much bigger' sphere
-        n.shape = 'circle'; // Changed to spherical 'circle'
+if(n.id === 'chapter01.md') {
+        n.size = isMobile ? 80 : 150; // Massive size for the galactic core
+        n.shape = 'star'; // Reverting to 'star' to better represent a radiating core
         n.color = {
-            background: 'rgba(128, 0, 255, 0.9)', // Deep Violet Core
-            border: '#8A2BE2', // BlueViolet Border
-            highlight: { background: 'rgba(153, 50, 204, 1)', border: '#DA70D6' }, // Thistle/Orchid for highlight glow
+            background: 'rgba(173, 216, 230, 0.9)', // Light Hazy Blue Core
+            border: '#8A2BE2', // BlueViolet border
+            highlight: { background: 'rgba(255, 255, 255, 1)', border: '#DA70D6' }, // Intense white highlight
         };
-        // Make the label more visible/styled for the origin
-        n.font = { size: isMobile ? 22 : 30, color: '#fff', face: 'Cormorant Garamond, serif', strokeWidth: 4, strokeColor: 'rgba(0,0,0,0.5)' };
+        // Use a massive shadow to simulate the 'cosmic blue voilet radiation' glow (nebula effect)
+        n.shadow = { enabled: true, color: 'rgba(138, 43, 226, 0.9)', size: 60, x: 0, y: 0 };
+        // Label style for prominent UI look
+        n.font = { size: isMobile ? 26 : 40, color: '#FFD700', face: 'Cormorant Garamond, serif', strokeWidth: 6, strokeColor: 'rgba(0,0,0,0.6)' };
     }
-// END modification for 'chapter01.md'**
 });
+// ------- helpers -------
+// ADD THE FOLLOWING PULSING ANIMATION LOGIC HERE:
+let glowDirection = 1;
+let glowSize = 60;
+function animateOriginGlow() {
+    const minGlow = 50;
+    const maxGlow = 70;
+    const step = 0.5;
+
+    glowSize += glowDirection * step;
+    
+    if (glowSize > maxGlow) {
+        glowSize = maxGlow;
+        glowDirection = -1;
+    } else if (glowSize < minGlow) {
+        glowSize = minGlow;
+        glowDirection = 1;
+    }
+
+    // Only update the origin node's shadow size
+    nodesDS.update([{
+        id: 'chapter01.md',
+        shadow: {
+            enabled: true,
+            size: glowSize,
+            color: 'rgba(138, 43, 226, 0.9)',
+            x: 0, y: 0
+        }
+    }]);
+    
+    // Request the next frame for a smooth loop (approx 60fps)
+    requestAnimationFrame(animateOriginGlow);
+}
+
+// Ensure the animation only starts after the network is created
+if(nodesDS.getIds().includes('chapter01.md')) {
+    animateOriginGlow();
+}
+// END OF ANIMATION LOGIC BLOCK
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function sanitizeFilename(s){ return (s||'chapter').replace(/[^a-z0-9_\- ]/gi,'_').trim(); }
 nodesDS = new vis.DataSet(nodes);
 edgesDS = new vis.DataSet(edges);
 data = { nodes: nodesDS, edges: edgesDS };
