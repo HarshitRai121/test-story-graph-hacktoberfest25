@@ -546,57 +546,127 @@ sidebarPanel.classList.remove('open');
 };
 // ------- starfield canvas background -------
 (function starfield(){
-const canvas = document.getElementById('starfield');
-const ctx = canvas.getContext('2d');
-let w=0,h=0, DPR=window.devicePixelRatio||1;
-function resize(){ w = canvas.width = Math.floor(window.innerWidth*DPR); h = canvas.height = Math.floor(window.innerHeight*DPR); canvas.style.width = window.innerWidth + 'px';
-canvas.style.height = window.innerHeight + 'px'; ctx.scale(DPR,DPR); initStars(); }
-window.addEventListener('resize', resize);
-let stars=[];
-function initStars(){
-stars = [];
-const count = Math.floor((window.innerWidth+window.innerHeight)/8);
-for(let i=0;i<count;i++){
-stars.push({
-x: Math.random()*window.innerWidth,
-y: Math.random()*window.innerHeight,
-r: (Math.random()*1.8)+0.4,
-alpha: Math.random()*0.9 + 0.1,
-twinkle: Math.random()*0.02+0.005,
-vx: (Math.random()-0.5)*0.02,
-vy: (Math.random()-0.5)*0.02
-});
-}
-}
-let mouseX=window.innerWidth/2, mouseY=window.innerHeight/2;
-window.addEventListener('mousemove', e=>{ mouseX = e.clientX; mouseY = e.clientY; });
-window.addEventListener('touchmove', e=>{ if(e.touches && e.touches[0]){ mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY } },{passive:true});
-function draw(){
-ctx.clearRect(0,0,canvas.width,canvas.height);
-// subtle gradient nebula
-const g = ctx.createLinearGradient(0,0,0,window.innerHeight);
-g.addColorStop(0, 'rgba(10,14,28,0.6)');
-g.addColorStop(1, 'rgba(2,6,12,0.9)');
-ctx.fillStyle = g; ctx.fillRect(0,0,window.innerWidth,window.innerHeight);
-// draw stars
-stars.forEach(s=>{
-// parallax move based on mouse
-const dx = (mouseX - window.innerWidth/2)/window.innerWidth;
-const dy = (mouseY - window.innerHeight/2)/window.innerHeight;
-const px = s.x + dx*20*(s.r);
-const py = s.y + dy*20*(s.r);
-s.alpha += (Math.random()*0.02 - 0.01) * s.twinkle;
-if(s.alpha < 0.15) s.alpha = 0.15;
-if(s.alpha > 1) s.alpha = 1;
-ctx.beginPath();
-ctx.fillStyle = `rgba(255,${220 - s.r*40},${160 - s.r*20},${s.alpha})`;
-ctx.arc(px, py, s.r, 0, Math.PI*2);
-ctx.fill();
-});
-requestAnimationFrame(draw);
-}
-resize(); draw();
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let w=0,h=0, DPR=window.devicePixelRatio||1;
+
+  function resize(){ 
+    w = canvas.width = Math.floor(window.innerWidth*DPR); 
+    h = canvas.height = Math.floor(window.innerHeight*DPR); 
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px'; 
+    ctx.scale(DPR,DPR); 
+    initStars(); 
+  }
+  window.addEventListener('resize', resize);
+
+  let stars=[];
+  function initStars(){
+    stars = [];
+    const count = Math.floor((window.innerWidth+window.innerHeight)/8);
+    for(let i=0;i<count;i++){
+      stars.push({
+        x: Math.random()*window.innerWidth,
+        y: Math.random()*window.innerHeight,
+        r: (Math.random()*1.8)+0.4,
+        alpha: Math.random()*0.9 + 0.1,
+        twinkle: Math.random()*0.02+0.005,
+        vx: (Math.random()-0.5)*0.02,
+        vy: (Math.random()-0.5)*0.02
+      });
+    }
+  }
+
+  let mouseX=window.innerWidth/2, mouseY=window.innerHeight/2;
+  window.addEventListener('mousemove', e=>{ mouseX = e.clientX; mouseY = e.clientY; });
+  window.addEventListener('touchmove', e=>{ if(e.touches && e.touches[0]){ mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY } },{passive:true});
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // subtle gradient nebula background
+    const g = ctx.createLinearGradient(0,0,0,window.innerHeight);
+    g.addColorStop(0, 'rgba(10,14,28,0.6)');
+    g.addColorStop(1, 'rgba(2,6,12,0.9)');
+    ctx.fillStyle = g; 
+    ctx.fillRect(0,0,window.innerWidth,window.innerHeight);
+
+    // ---- CENTRAL BIG NEBULA ----
+    const nebulaX = window.innerWidth/2;
+    const nebulaY = window.innerHeight/2;
+    const nebulaRadius = Math.min(window.innerWidth, window.innerHeight) * 0.35; // responsive size
+    const nebula = ctx.createRadialGradient(
+      nebulaX, nebulaY, nebulaRadius*0.1,
+      nebulaX, nebulaY, nebulaRadius
+    );
+    nebula.addColorStop(0, 'rgba(255,180,120,0.35)');
+    nebula.addColorStop(0.4, 'rgba(180,120,255,0.20)');
+    nebula.addColorStop(1, 'rgba(20,10,40,0.05)');
+    ctx.fillStyle = nebula;
+    ctx.beginPath();
+    ctx.arc(nebulaX, nebulaY, nebulaRadius, 0, Math.PI*2);
+    ctx.fill();
+
+    // stars
+    stars.forEach(s=>{
+      const dx = (mouseX - window.innerWidth/2)/window.innerWidth;
+      const dy = (mouseY - window.innerHeight/2)/window.innerHeight;
+      const px = s.x + dx*20*(s.r);
+      const py = s.y + dy*20*(s.r);
+
+      s.alpha += (Math.random()*0.02 - 0.01) * s.twinkle;
+      if(s.alpha < 0.15) s.alpha = 0.15;
+      if(s.alpha > 1) s.alpha = 1;
+
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255,${220 - s.r*40},${160 - s.r*20},${s.alpha})`;
+      ctx.arc(px, py, s.r, 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  resize(); 
+  draw();
 })();
+
+// ---- CENTRAL COSMIC NEBULA (Pulsing + Color Shift) ----
+const nebulaX = window.innerWidth / 2;
+const nebulaY = window.innerHeight / 2;
+
+// time-based pulse (breathing)
+const t = Date.now() * 0.001; 
+const pulse = 0.05 * Math.sin(t * 2) + 1; // gentle scale oscillation
+
+// base radius responsive
+const baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.35;
+const nebulaRadius = baseRadius * pulse;
+
+// slow color shifting
+const shift = (Math.sin(t * 0.2) + 1) / 2; // oscillates 0 → 1
+const r = Math.floor(200 + 55 * shift);  // warm orange to pink
+const g = Math.floor(120 + 80 * (1 - shift)); // shift between purple/blue
+const b = Math.floor(200 + 40 * shift);  
+
+const nebula = ctx.createRadialGradient(
+  nebulaX, nebulaY, nebulaRadius * 0.1,
+  nebulaX, nebulaY, nebulaRadius
+);
+
+// inner glow
+nebula.addColorStop(0, `rgba(${r},${g},${b},0.35)`);
+// mid halo
+nebula.addColorStop(0.4, `rgba(${255-r/2},${150+g/2},${255-b/3},0.22)`);
+// fade out
+nebula.addColorStop(1, 'rgba(10,5,25,0.05)');
+
+ctx.fillStyle = nebula;
+ctx.beginPath();
+ctx.arc(nebulaX, nebulaY, nebulaRadius, 0, Math.PI * 2);
+ctx.fill();
+
+
 // start
 loadStories();
 // expose for debugging
