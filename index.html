@@ -481,7 +481,8 @@ n.size = size;
 const glow = Math.min(60 + deg*40, 255);
 n.color = { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background:'#fff1e6' } };
 n.shape = 'dot';
-if(n.id === 'chapter01.md') {
+// START modification for 'chapter01.md'**
+    if(n.id === 'chapter01.md') {
         n.size = isMobile ? 80 : 150; // Massive size for the galactic core
         n.shape = 'star'; // Reverting to 'star' to better represent a radiating core
         n.color = {
@@ -494,7 +495,29 @@ if(n.id === 'chapter01.md') {
         // Label style for prominent UI look
         n.font = { size: isMobile ? 26 : 40, color: '#FFD700', face: 'Cormorant Garamond, serif', strokeWidth: 6, strokeColor: 'rgba(0,0,0,0.6)' };
     }
+// END modification for 'chapter01.md'**
 });
+nodesDS = new vis.DataSet(nodes);
+edgesDS = new vis.DataSet(edges);
+data = { nodes: nodesDS, edges: edgesDS };
+const options = {
+autoResize: true,
+interaction: { hover:true, tooltipDelay:100, navigationButtons:true, multiselect:false },
+nodes: { font:{face:'Inter',size:14,color:'#08162A'}, scaling:{min:8,max:32} },
+edges: { color: 'rgba(255,255,255,0.06)', smooth: { enabled:true, type:'dynamic' } },
+physics: { stabilization:false, barnesHut:{gravitationalConstant:-24000, springLength:120, springConstant:0.001} },
+layout: { improvedLayout:true }
+};
+network = new vis.Network(networkEl, data, options);
+network.on('click', params => {
+if(params.nodes && params.nodes.length>0){
+const id = params.nodes[0];
+openNode(id);
+}
+});
+// tooltip style
+network.on('hoverNode', function(params){ /* could show ephemeral tooltip */ });
+}
 // ------- helpers -------
 // ADD THE FOLLOWING PULSING ANIMATION LOGIC HERE:
 let glowDirection = 1;
@@ -534,30 +557,6 @@ if(nodesDS.getIds().includes('chapter01.md')) {
     animateOriginGlow();
 }
 // END OF ANIMATION LOGIC BLOCK
-function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function sanitizeFilename(s){ return (s||'chapter').replace(/[^a-z0-9_\- ]/gi,'_').trim(); }
-nodesDS = new vis.DataSet(nodes);
-edgesDS = new vis.DataSet(edges);
-data = { nodes: nodesDS, edges: edgesDS };
-const options = {
-autoResize: true,
-interaction: { hover:true, tooltipDelay:100, navigationButtons:true, multiselect:false },
-nodes: { font:{face:'Inter',size:14,color:'#08162A'}, scaling:{min:8,max:32} },
-edges: { color: 'rgba(255,255,255,0.06)', smooth: { enabled:true, type:'dynamic' } },
-physics: { stabilization:false, barnesHut:{gravitationalConstant:-24000, springLength:120, springConstant:0.001} },
-layout: { improvedLayout:true }
-};
-network = new vis.Network(networkEl, data, options);
-network.on('click', params => {
-if(params.nodes && params.nodes.length>0){
-const id = params.nodes[0];
-openNode(id);
-}
-});
-// tooltip style
-network.on('hoverNode', function(params){ /* could show ephemeral tooltip */ });
-}
-// ------- helpers -------
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function sanitizeFilename(s){ return (s||'chapter').replace(/[^a-z0-9_\- ]/gi,'_').trim(); }
 // ------- theme toggle -------
