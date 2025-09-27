@@ -31,22 +31,52 @@ Our story is written in the spirit of *The Alchemist* — simple, symbolic, emot
   - The **author’s GitHub username**
   - A **parent chapter** (the file you continue from)
   - A **lesson learned** (the wisdom your chapter imparts)
+  - A **passing the torch** (the other contributor gets the idea about the next flow) 
 
 
 Example:
 
+```
+chapter03_mountain_of_shards.md
+```
+
 ```markdown
 ---
-title: The Mask of Truth
-author: your-github-username
-parent: chapter04.md
+title: The Mountain of Shards
+author: contributor4
+parent: chapter02_stars.md
 ---
 
-Elias asked the warrior to remove their mask.  
-Beneath it was a face both young and ancient,  
-teaching him that truth cannot hide forever.  
+The Wanderer followed the path of falling stars until it led them to a mountain.  
+Its peak touched the heavens, its slopes glittering with fragments of broken constellations.  
+Each shard pulsed faintly, humming like heartbeats buried in stone.  
 
-**Lesson**: To face the world, one must first face themselves.
+The climb was steep.  
+With every step, the Wanderer’s lantern flickered — sometimes strong, sometimes weak, as though the mountain tested their resolve.  
+
+At one point, they stumbled.  
+A shard cut their hand, drawing blood.  
+Yet when their blood touched the shard, it glowed brighter and fused into the lantern’s flame.  
+
+The Wanderer understood:  
+The shards were not gifts to be taken.  
+They were burdens to be earned, each demanding sacrifice.  
+
+At last, near the summit, the Wanderer found a massive shard unlike the rest — it glowed with a warmth that felt like a heartbeat.  
+When they reached for it, the shard dissolved into their chest.  
+The lantern blazed so brightly it painted the sky with fire.  
+
+The mountain whispered:  
+*"Every wound you carry becomes light for the road ahead."*  
+
+**Lesson**: Pain endured can become strength shared.  
+
+---
+
+🔮 **Passing the Torch**  
+At the summit, the Wanderer saw the horizon split into three — a forest, a river, and a ruined city lit faintly by sparks.  
+Each shimmered with possibility.  
+
 ```
 
 ---
@@ -64,7 +94,7 @@ teaching him that truth cannot hide forever.
 - **Create a New File**
 
   - Add your .md file in /storynodes/.
-  - Name it something thematic (e.g., chapter08_the-lantern.md).
+  - Name it something thematic (e.g., chapter08_the_lantern.md).
 
 - **Follow the Template**
   
@@ -83,13 +113,17 @@ teaching him that truth cannot hide forever.
 The story isn’t hidden in files.
 It is live here: Live Link
 
-- 🪐 **Universe View**: Each chapter is a star in the constellation.
+- 🪐 **Universe View**:
+  - Each chapter is a star in the constellation.
 
-- 📖 **Reading Mode**: Tap a star → read chapter in immersive view.
+- 📖 **Reading Mode**:
+  - Tap a star → read chapter in immersive view.
 
-- 😎 **Contributors List**: Every writer is shown as part of the galaxy.
+- 😎 **Contributors List**:
+  - Every writer is shown as part of the galaxy.
 
-- 📥 **Export to PDF**: Save your chapter or the full book.
+- 📥 **Export to PDF**:
+  - Save your chapter or the full book.
   
 ---
 
