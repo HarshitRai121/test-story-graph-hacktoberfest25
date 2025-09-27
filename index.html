@@ -85,40 +85,34 @@ margin: 0 0 12px 0;
 .panel-body-group:last-child { margin-bottom: 0; }
 /* Limit and scroll Contributors list */
 #contributorsList {
-  max-height: 250px;       /* cap height */
-  overflow-y: auto;        /* scroll if too many */
-  padding-right: 4px;      /* avoid scrollbar overlap */
+max-height: 250px;       /* cap height */
+overflow-y: auto;        /* scroll if too many */
+padding-right: 4px;      /* avoid scrollbar overlap */
 }
-
 /* Limit and scroll Features list */
 .panel-body-group:nth-of-type(3) {
-  max-height: 200px;
-  overflow-y: auto;
-  padding-right: 4px;
+max-height: 200px;
+overflow-y: auto;
+padding-right: 4px;
 }
-
 /* Custom scrollbar styling */
 #contributorsList::-webkit-scrollbar,
 .panel-body-group:nth-of-type(3)::-webkit-scrollbar {
-  width: 6px;
+width: 6px;
 }
-
 #contributorsList::-webkit-scrollbar-track,
 .panel-body-group:nth-of-type(3)::-webkit-scrollbar-track {
-  background: transparent;
+background: transparent;
 }
-
 #contributorsList::-webkit-scrollbar-thumb,
 .panel-body-group:nth-of-type(3)::-webkit-scrollbar-thumb {
-  background-color: rgba(255,255,255,0.15);
-  border-radius: 999px;
+background-color: rgba(255,255,255,0.15);
+border-radius: 999px;
 }
-
 #contributorsList::-webkit-scrollbar-thumb:hover,
 .panel-body-group:nth-of-type(3)::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255,255,255,0.25);
+background-color: rgba(255,255,255,0.25);
 }
-
 /* Contributors list */
 .contributor-item{display:flex;gap:10px;align-items:center;padding:8px;border-radius:8px;margin-bottom:8px;cursor:pointer}
 .contributor-item:hover{background:rgba(255,255,255,0.02)}
@@ -132,13 +126,13 @@ margin: 0 0 12px 0;
 flex: 1;
 position: relative;
 overflow: hidden;
-height: 100%;         /* 👈 ensure it respects parent height */
-max-height: 100vh;    /* 👈 prevent infinite growth */
+height: 100%;         /* 👈 ensure it respects parent height */
+max-height: 100vh;    /* 👈 prevent infinite growth */
 }
 #network{
-  width: 100%;
-  height: 100%;
-  max-height: 100%;     /* 👈 keep inside wrap */
+width: 100%;
+height: 100%;
+max-height: 100%;     /* 👈 keep inside wrap */
 }
 /* Reading panel */
 #reading-panel{
@@ -251,10 +245,10 @@ z-index: 55;
 </div>
 <div class="panel-body">
 <div class="panel-body-group">
-  <h3>Quick Index</h3>
-  <input type="text" id="quickIndexSearch" placeholder="Search chapters..."
-    style="margin-bottom:8px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:var(--glass);color:#fff;width:100%;box-sizing:border-box;">
-  <div id="quickIndex" style="display:flex;flex-direction:column;gap:8px"></div>
+<h3>Quick Index</h3>
+<input type="text" id="quickIndexSearch" placeholder="Search chapters..."
+style="margin-bottom:8px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:var(--glass);color:#fff;width:100%;box-sizing:border-box;">
+<div id="quickIndex" style="display:flex;flex-direction:column;gap:8px"></div>
 </div>
 <div class="panel-body-group">
 <h3>Contributors</h3>
@@ -268,28 +262,30 @@ z-index: 55;
 <div style="font-weight:700">Reading Mode</div>
 <div style="font-size:13px;color:var(--muted)">Open chapters in immersive reading panel</div>
 </div>
-<div><button id="btnReadingMode">Open</button></div>
+<div><button id="btnReadingMode">Open</button>
+</div>
 </div>
 <div class="feature">
 <div>
 <div style="font-weight:700">Download Chapter</div>
 <div style="font-size:13px;color:var(--muted)">Export the open chapter as PDF</div>
 </div>
-<div><button id="btnDownload">Download</button></div>
+<div><button id="btnDownload">Download</button>
+</div>
 </div>
 <div class="feature">
 <div>
 <div style="font-weight:700">Theme</div>
 <div style="font-size:13px;color:var(--muted)">Toggle dark / soft mode</div>
 </div>
-<div><button id="btnTheme">🌙</button></div>
+<div><button id="btnTheme">🌙</button>
+</div>
 </div>
 </div>
 </div>
 </aside>
 <div id="main-container">
 <div id="network-wrap"><div id="network"></div></div>
-
 <aside id="reading-panel" aria-hidden="true">
 <div class="reading-header">
 <div>
@@ -351,9 +347,23 @@ json.chapters.forEach(c=>{
 chaptersMap[c.filename] = c;
 });
 contributors = json.contributors || [];
-buildNetwork(json.chapters);
+const rootNodeId = buildNetwork(json.chapters); // MODIFIED: Capture root node ID
 renderContributors(contributors);
 buildQuickIndex(json.chapters);
+
+// NEW: Center on the root node after network is built and physics settle
+if (rootNodeId) {
+setTimeout(() => {
+network.focus(rootNodeId, {
+scale: 1.5,
+animation: {
+duration: 800,
+easingFunction: 'easeInOutQuad'
+}
+});
+}, 500); // Give the initial layout a moment to stabilize
+}
+
 } catch(err){
 console.error(err);
 networkEl.innerHTML = `<div style="padding:20px;color:#f8d7da">Failed to load story network. Check server. (${err.message})</div>`;
@@ -373,18 +383,15 @@ btn.onclick = ()=> openNode(t.filename);
 quickIndex.appendChild(btn);
 });
 }
-
 // ------- quick index search -------
 document.getElementById('quickIndexSearch').addEventListener('input', function(e) {
-  const term = e.target.value.toLowerCase();
-  const buttons = quickIndex.querySelectorAll('button');
-  buttons.forEach(btn => {
-    const title = btn.innerText.toLowerCase();
-    btn.style.display = title.includes(term) ? 'flex' : 'none';
-  });
+const term = e.target.value.toLowerCase();
+const buttons = quickIndex.querySelectorAll('button');
+buttons.forEach(btn => {
+const title = btn.innerText.toLowerCase();
+btn.style.display = title.includes(term) ? 'flex' : 'none';
 });
-
-
+});
 // ------- render contributors list -------
 function renderContributors(list){
 contributorsList.innerHTML = '';
@@ -475,12 +482,16 @@ function buildNetwork(chapters){
 const nodes = [];
 const edges = [];
 const degreeCount = {};
+let rootNodeId = null; // NEW: To store the ID of the root node
 chapters.forEach(c=>{
 const id = c.filename;
 const title = c.metadata.title || id;
 const author = c.metadata.author || 'unknown';
 degreeCount[id] = degreeCount[id] || 0;
 nodes.push({ id, label: title, title: title, author, value: 10 }); // value used for sizing
+if(!c.metadata.parent || c.metadata.parent.trim()==='') { // Check for root node
+rootNodeId = id; // Identify the starting node
+}
 if(c.metadata.parent) {
 edges.push({ from: c.metadata.parent, to: id });
 degreeCount[c.metadata.parent] = (degreeCount[c.metadata.parent]||0) + 1;
@@ -491,13 +502,29 @@ degreeCount[id] = (degreeCount[id]||0) + 1;
 nodes.forEach(n => {
 const deg = degreeCount[n.id] || 0;
 const isMobile = window.innerWidth < 900;
-const size = Math.min(8 + deg*6, isMobile ? 18 : 28); // cap smaller on mobile
+let size = Math.min(8 + deg*6, isMobile ? 18 : 28); // cap smaller on mobile
+
+if (n.id === rootNodeId) {
+// MODIFIED: Apply special "Sun/Nebula" style to the root node
+size = isMobile ? 32 : 50; // Make it significantly larger
+n.color = {
+background: '#FFD700', // Gold/Sun-like background
+border: '#FFA500',   // Orange border
+highlight: { background:'#FFFACD', border: '#FFC700' }
+};
+n.font = { size: isMobile ? 16 : 22, color: '#000000', face: 'Cormorant Garamond' }; // Dark text on bright background
+n.shadow = { enabled: true, color: 'rgba(255,165,0,0.8)', size: 30, x: 0, y: 0 }; // Outer glow effect (the nebula visual)
+} else {
+n.color = { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background:'#fff1e6' } };
+}
+
 n.size = size;
 // color by degree (brighter = more branches)
-const glow = Math.min(60 + deg*40, 255);
-n.color = { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background:'#fff1e6' } };
+// Removed original color logic to allow sun style to take precedence
 n.shape = 'dot';
 });
+chaptersMap[rootNodeId].degreeCount = degreeCount[rootNodeId]; // Ensure degreeCount is saved for the root node
+
 nodesDS = new vis.DataSet(nodes);
 edgesDS = new vis.DataSet(edges);
 data = { nodes: nodesDS, edges: edgesDS };
@@ -518,6 +545,8 @@ openNode(id);
 });
 // tooltip style
 network.on('hoverNode', function(params){ /* could show ephemeral tooltip */ });
+
+return rootNodeId; // MODIFIED: Return the root node ID for focusing
 }
 // ------- helpers -------
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -527,7 +556,7 @@ let dark = true;
 btnTheme.onclick = ()=> {
 dark = !dark;
 if(dark){ document.documentElement.style.setProperty('--bg','#0b1020'); document.documentElement.style.setProperty('--panel','#0f1724'); btnTheme.textContent='🌙' }
-else { document.documentElement.style.setProperty('--bg','#f7f7f7'); document.documentElement.style.setProperty('--panel','#ffffff'); btnTheme.textContent=' ☀ ️'; }
+else { document.documentElement.style.setProperty('--bg','#f7f7f7'); document.documentElement.style.setProperty('--panel','#ffffff'); btnTheme.textContent='  ☀  ️'; }
 document.body.style.background = getComputedStyle(document.documentElement).getPropertyValue('--bg');
 };
 // ------- reading mode button: open last selected or first node -------
