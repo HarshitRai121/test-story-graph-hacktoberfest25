@@ -1,20 +1,47 @@
-### New Story Node Submission
+# ✨ Once Upon a Commit: Infinite Pages — Pull Request
 
-**Story Node Title:**
--   [ ] I have chosen a creative title for my story node.
-
-**Parent Story Node:**
--   [ ] I have specified the filename of the story node I am continuing in the `parent` metadata.
-
-**Brief Summary:**
-*Please provide a short summary of the new path your story node introduces.*
-
-**Checklist:**
--   [ ] My story node is a new file in the `storynodes/` directory.
--   [ ] I have included the `title`, `author`, and `parent` metadata at the top of the file.
--   [ ] The file is written in Markdown (`.md`).
--   [ ] My contribution fits the theme and style of the existing chapters.
--   [ ] I have proofread my work for typos and grammar.
+Thank you for adding your star to our constellation! 🌌  
+Please fill out the details below to help us merge your chapter smoothly.
 
 ---
-Thank you for contributing to our story!
+
+## 📖 Chapter Details
+
+- **Title of Chapter**:  
+- **Author (GitHub Username)**:  
+- **Parent Chapter** (the one you’re continuing from):  
+
+---
+
+## 📝 Chapter Summary
+
+Write 2–3 lines summarizing your chapter.  
+(Example: *The Wanderer meets a child carrying a lantern, learning that hope often appears in the smallest forms.*)
+
+---
+
+## 🌟 Lesson Learned
+
+What is the wisdom your chapter leaves behind?  
+(Example: *True light shines not in the absence of darkness, but in the courage to walk through it.*)
+
+---
+
+## 🔮 Passing the Torch
+
+How does your chapter end?  
+What open path or question are you leaving for the next writer?  
+(Example: *The Wanderer reached a fork in the road: one glowing with warmth, the other cloaked in mist.*)
+
+---
+
+## ✅ Checklist
+
+- [ ] My file is added inside `/storynodes/` with a clear filename.  
+- [ ] I followed the chapter template with **title, author, parent, story, lesson**.  
+- [ ] My writing is under ~300 words, simple and emotional.  
+- [ ] I ended my chapter with space for the next writer.  
+
+---
+
+🌠 *Once merged, your words will appear live in the constellation and in the final book.*  
