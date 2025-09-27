@@ -262,24 +262,21 @@ style="margin-bottom:8px;padding:6px 10px;border-radius:6px;border:1px solid rgb
 <div style="font-weight:700">Reading Mode</div>
 <div style="font-size:13px;color:var(--muted)">Open chapters in immersive reading panel</div>
 </div>
-<div><button id="btnReadingMode">Open</button>
-</div>
+<div><button id="btnReadingMode">Open</button></div>
 </div>
 <div class="feature">
 <div>
 <div style="font-weight:700">Download Chapter</div>
 <div style="font-size:13px;color:var(--muted)">Export the open chapter as PDF</div>
 </div>
-<div><button id="btnDownload">Download</button>
-</div>
+<div><button id="btnDownload">Download</button></div>
 </div>
 <div class="feature">
 <div>
 <div style="font-weight:700">Theme</div>
 <div style="font-size:13px;color:var(--muted)">Toggle dark / soft mode</div>
 </div>
-<div><button id="btnTheme">🌙</button>
-</div>
+<div><button id="btnTheme">🌙</button></div>
 </div>
 </div>
 </div>
@@ -347,23 +344,9 @@ json.chapters.forEach(c=>{
 chaptersMap[c.filename] = c;
 });
 contributors = json.contributors || [];
-const rootNodeId = buildNetwork(json.chapters); // Capture root node ID
+buildNetwork(json.chapters);
 renderContributors(contributors);
 buildQuickIndex(json.chapters);
-// NEW: Center on the root node after network is built and physics settle
-if (rootNodeId) {
-setTimeout(() => {
-// We set a slightly smaller scale for the focus animation on mobile
-const focusScale = window.innerWidth < 900 ? 1.0 : 1.5;
-network.focus(rootNodeId, {
-scale: focusScale,
-animation: {
-duration: 800,
-easingFunction: 'easeInOutQuad'
-}
-});
-}, 500); // Give the initial layout a moment to stabilize
-}
 } catch(err){
 console.error(err);
 networkEl.innerHTML = `<div style="padding:20px;color:#f8d7da">Failed to load story network. Check server. (${err.message})</div>`;
@@ -409,12 +392,10 @@ const all = nodesDS.get();
 const byAuthor = Object.values(chaptersMap).filter(ch => ch.metadata.author === login).map(ch => ch.filename);
 const defaultNodes = all.map(n => ({
 id: n.id,
-// Retain the sun/nebula style for the root node if it's the root node, otherwise use standard style
-color: n.id === network.body.data.nodes.get().find(node => node.shape === 'star')?.id
-? n.color // Keep the custom color
-: { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background: '#fff1e6' } },
-size: n.size,
-shape: n.shape
+color: n.id in chaptersMap ?
+{ background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background: '#fff1e6' } } :
+{ background:'#1f2a44', border:'#2b3b5a', highlight: { background:'#445a86' } },
+size: Math.min(8 + (chaptersMap[n.id] ? (chaptersMap[n.id].degreeCount || 0) : 0) * 6, 28)
 }));
 if(byAuthor.length){
 const updatedNodes = defaultNodes.map(n => {
@@ -484,16 +465,18 @@ function buildNetwork(chapters){
 const nodes = [];
 const edges = [];
 const degreeCount = {};
-let rootNodeId = null; // To store the ID of the root node
+// Store the filename of the first node found to treat it as the origin
+let originFilename = '';
 chapters.forEach(c=>{
 const id = c.filename;
 const title = c.metadata.title || id;
 const author = c.metadata.author || 'unknown';
 degreeCount[id] = degreeCount[id] || 0;
-nodes.push({ id, label: title, title: title, author, value: 10 }); // value used for sizing
-if(!c.metadata.parent || c.metadata.parent.trim()==='') { // Check for root node
-rootNodeId = id; // Identify the starting node
+// Identify the origin node (no parent) and set its filename
+if (!c.metadata.parent || c.metadata.parent.trim() === '') {
+    originFilename = id;
 }
+nodes.push({ id, label: title, title: title, author, value: 10 }); // value used for sizing
 if(c.metadata.parent) {
 edges.push({ from: c.metadata.parent, to: id });
 degreeCount[c.metadata.parent] = (degreeCount[c.metadata.parent]||0) + 1;
@@ -505,29 +488,28 @@ nodes.forEach(n => {
 const deg = degreeCount[n.id] || 0;
 const isMobile = window.innerWidth < 900;
 let size = Math.min(8 + deg*6, isMobile ? 18 : 28); // cap smaller on mobile
-if (n.id === rootNodeId) {
-// MODIFIED: Apply special, much bigger "Sun/Nebula" style to the root node
-// Significantly larger for prominence on all devices
-size = isMobile ? 40 : 80;
-n.color = {
-background: '#FFFF88', // Very bright yellow center
-border: '#FFA500',   // Orange border
-highlight: { background:'#FFFACD', border: '#FFC700' }
-};
-// Use a stronger, larger shadow for the nebula effect
-n.shadow = { enabled: true, color: 'rgba(255, 100, 0, 0.9)', size: 50, x: 0, y: 0 };
-n.shape = 'star'; // Use a star shape for a sun-like appearance
-n.font = { size: isMobile ? 18 : 28, color: '#000000', face: 'Cormorant Garamond', strokeWidth: 0 };
+
+// Check if this is the origin node and apply a special size/color
+if (n.id === originFilename) {
+    size = isMobile ? 24 : 40; // Larger size for the origin node
+    n.color = {
+        background: `rgba(255,160,0,1.0)`, // Brighter background (nebula core)
+        border: '#ffb86b', // Accent border
+        highlight: { background:'#fff1e6' },
+        borderWidth: 4 // Thicker border
+    };
+    n.label = n.title + '\n(Origin)'; // Add a label hint
+    n.font = { size: 16, multi: 'html', color: '#fff' }; // Larger font for origin
+    // Set a very high value to ensure it's visually prominent if using value-based scaling
+    n.value = 50; 
 } else {
-n.color = { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background:'#fff1e6' } };
-n.shape = 'dot';
+    // Default styling for other nodes
+    n.color = { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background:'#fff1e6' } };
 }
+
 n.size = size;
-// color by degree (brighter = more branches)
-// Removed original color logic to allow sun style to take precedence
-// n.shape = 'dot'; // REMOVED: This line was overriding the root node's star shape
+n.shape = 'dot';
 });
-chaptersMap[rootNodeId].degreeCount = degreeCount[rootNodeId]; // Ensure degreeCount is saved for the root node
 nodesDS = new vis.DataSet(nodes);
 edgesDS = new vis.DataSet(edges);
 data = { nodes: nodesDS, edges: edgesDS };
@@ -548,7 +530,6 @@ openNode(id);
 });
 // tooltip style
 network.on('hoverNode', function(params){ /* could show ephemeral tooltip */ });
-return rootNodeId; // Return the root node ID for focusing
 }
 // ------- helpers -------
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
