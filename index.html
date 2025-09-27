@@ -18,7 +18,8 @@
 --star: #ffd7a8;
 --glass: rgba(255,255,255,0.04);
 }
-html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;background:var(--bg);color:#e6eef8;-webkit-font-smoothing:antialiased;}
+/* FIX: Prevents canvas from growing infinitely on mobile */
+html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;background:var(--bg);color:#e6eef8;-webkit-font-smoothing:antialiased; overflow: hidden; }
 /* New Layout */
 #app{
 display: flex;
@@ -153,7 +154,6 @@ flex-direction: column;
 #reading-panel.open{transform:translateX(0)}
 .reading-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.03)}
 .reading-title{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--accent)}
-.reading-body{overflow:auto;padding:20px;flex:1}
 .reading-meta{color:var(--muted);font-size:13px;margin-top:6px}
 .close-reading{background:none;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:10px;color:var(--star);cursor:pointer}
 /* New responsive rules */
@@ -395,7 +395,7 @@ id: n.id,
 color: n.id in chaptersMap ?
 { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background: '#fff1e6' } } :
 { background:'#1f2a44', border:'#2b3b5a', highlight: { background:'#445a86' } },
-size: Math.min(8 + (chaptersMap[n.id] ? (chaptersMap[n.id].degreeCount || 0) : 0) * 6, 28)
+size: Math.min(10 + (chaptersMap[n.id] ? (chaptersMap[n.id].degreeCount || 0) : 0) * 6, 32) // Updated Max Size
 }));
 if(byAuthor.length){
 const updatedNodes = defaultNodes.map(n => {
@@ -403,7 +403,7 @@ if(byAuthor.includes(n.id)){
 return {
 ...n,
 color: { background:'#ffe8c8', border:'#ffb86b', highlight: { background:'#fff1e6' } },
-size: Math.max((n.size||10), 18)
+size: Math.max((n.size||12), 20) // Slightly larger highlight size
 };
 }
 return n;
@@ -487,27 +487,39 @@ degreeCount[id] = (degreeCount[id]||0) + 1;
 nodes.forEach(n => {
 const deg = degreeCount[n.id] || 0;
 const isMobile = window.innerWidth < 900;
-let size = Math.min(8 + deg*6, isMobile ? 18 : 28); // cap smaller on mobile
+let size;
+let color;
+let shadow;
 
-// Check if this is the origin node and apply a special size/color
+// Default styling (slightly increased size for all)
+size = Math.min(10 + deg * 6, isMobile ? 20 : 32); // Increased base size
+color = { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background: '#fff1e6' } };
+shadow = { enabled: false };
+
+// Check if this is the origin node and apply a special size/color/shadow
 if (n.id === originFilename) {
-    size = isMobile ? 24 : 40; // Larger size for the origin node
-    n.color = {
-        background: `rgba(255,160,0,1.0)`, // Brighter background (nebula core)
-        border: '#ffb86b', // Accent border
+    size = isMobile ? 30 : 45; // Larger size for the origin node
+    color = {
+        background: '#fff3e0', // Very light background for core
+        border: '#ffb86b', 
         highlight: { background:'#fff1e6' },
-        borderWidth: 4 // Thicker border
+        borderWidth: 5
+    };
+    shadow = {
+        enabled: true,
+        color: 'rgba(255, 184, 107, 0.8)', // Glowing color (var(--accent))
+        size: 25, // Large shadow size
+        x: 0,
+        y: 0
     };
     n.label = n.title + '\n(Origin)'; // Add a label hint
     n.font = { size: 16, multi: 'html', color: '#fff' }; // Larger font for origin
-    // Set a very high value to ensure it's visually prominent if using value-based scaling
-    n.value = 50; 
-} else {
-    // Default styling for other nodes
-    n.color = { background: `rgba(255,200,120,0.95)`, border: '#ffb86b', highlight: { background:'#fff1e6' } };
-}
+    n.value = 50; // High value for physics prominence
+} 
 
 n.size = size;
+n.color = color;
+n.shadow = shadow;
 n.shape = 'dot';
 });
 nodesDS = new vis.DataSet(nodes);
